@@ -16,11 +16,11 @@
 
 from setuptools import setup
 
-with open('README.md', 'r') as fh:
+with open('README.md', 'r', encoding='utf-8') as fh:
     long_description = fh.read()
 
 setup(name='openleadr',
-      version='0.5.24',
+      version='0.5.28',
       description='Python3 library for building OpenADR Clients (VENs) and Servers (VTNs)',
       long_description=long_description,
       long_description_content_type='text/markdown',
@@ -30,5 +30,5 @@ setup(name='openleadr',
       packages=['openleadr', 'openleadr.service'],
       python_requires='>=3.7.0',
       include_package_data=True,
-      install_requires=['xmltodict', 'aiohttp', 'apscheduler', 'jinja2', 'signxml-openadr==2.9.1'],
+      install_requires=['xmltodict', 'aiohttp', 'apscheduler', 'jinja2', 'signxml==2.10.1'],
       entry_points={'console_scripts': ['fingerprint = openleadr.fingerprint:show_fingerprint']})

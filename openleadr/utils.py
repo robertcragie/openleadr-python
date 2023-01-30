@@ -130,10 +130,25 @@ def normalize_dict(ordered_dict):
 
         # Group all reports as a list of dicts under the key "pending_reports"
         if key == "pending_reports":
-            if isinstance(d[key], dict) and 'report_request_id' in d[key] \
-               and isinstance(d[key]['report_request_id'], list):
-                d['pending_reports'] = [{'report_request_id': rrid}
-                                        for rrid in d['pending_reports']['report_request_id']]
+            # If there are pending reports, turn them into a list of dicts,
+            # each with a single 'report_request_id' key.
+            if isinstance(d[key], dict) and 'report_request_id' in d[key]:
+
+                # If there is only one report_request_id, make sure it is
+                # turned into a list before further processing.
+                if not isinstance(d[key]['report_request_id'], list):
+                    d[key]['report_request_id'] = [d[key]['report_request_id']]
+
+                # When collecting the report_request_ids, make sure even numeric
+                # ids get turned into strings.
+                d[key] = [{'report_request_id': str(rrid)}
+                          for rrid in d[key]['report_request_id']
+                          if d[key]['report_request_id'] is not None]
+
+            # If there are no pending reports, make sure we get an empty list back
+            # so any iteration can proceed as normal.
+            elif d[key] is None:
+                d[key] = []
 
         # Group all events al a list of dicts under the key "events"
         elif key == "event" and isinstance(d[key], list):
@@ -591,7 +606,7 @@ def determine_event_status(active_period):
         active_period_start = active_period_start.astimezone(timezone.utc)
         setmember(active_period, 'dtstart', active_period_start)
     active_period_end = active_period_start + getmember(active_period, 'duration')
-    if now >= active_period_end:
+    if now >= active_period_end and getmember(active_period, 'duration').total_seconds() > 0:
         return 'completed'
     if now >= active_period_start:
         return 'active'
@@ -776,7 +791,9 @@ def order_events(events, limit=None, offset=None):
     for event in events:
         if getmember(event, 'event_descriptor.event_status') != enums.EVENT_STATUS.CANCELLED:
             event_status = determine_event_status(getmember(event, 'active_period'))
-            setmember(event, 'event_descriptor.event_status', event_status)
+            if getmember(event, 'event_descriptor.event_status') != event_status:
+                setmember(event, 'event_descriptor.event_status', event_status)
+                setmember(event, 'event_descriptor.created_date_time', datetime.now(timezone.utc))
 
     # Short circuit if we only have one event:
     if len(events) == 1:
